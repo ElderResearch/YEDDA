@@ -11,7 +11,7 @@ from ttk import *#Frame, Button, Label, Style, Scrollbar
 import tkFileDialog
 import tkFont
 import re
-from collections import deque
+from collections import deque, OrderedDict
 import pickle
 import os.path
 import platform
@@ -63,6 +63,8 @@ class Example(Frame):
         self.seged = True  ## False for non-segmentated Chinese, True for English or Segmented Chinese
         self.configFile = "config"
         self.entityRe = r'\[\@.*?\#.*?\*\](?!\#)'
+        # self.entityRe = r'\[\@{\w\W}*\#{\w\W}*\*\](?!\#)'
+        # self.entityRe = r'\[\@(.*|\n)?\#(.*|\n)?\*\](?!\#)'
         self.insideNestEntityRe = r'\[\@\[\@(?!\[\@).*?\#.*?\*\]\#'
         self.recommendRe = r'\[\$.*?\#.*?\*\](?!\#)'
         self.goldAndrecomRe = r'\[\@.*?\#.*?\*\](?!\#)'
@@ -382,13 +384,14 @@ class Example(Frame):
                 print 'q: remove entity label'
             else:
                 if len(selected_string) > 0:
-                    entity_content, cursor_index = self.replaceString(selected_string, selected_string, [command], cursor_index)
+                    entity_content, cursor_index = self.replaceString(selected_string, selected_string, cursor_index, command)
             aboveHalf_content += entity_content
             content = self.addRecommendContent(aboveHalf_content, afterEntity_content, self.recommendFlag)
             content = content.encode('utf-8')
             self.writeFile(self.fileName, content, cursor_index)
 
         except TclError:
+            print "TCL ERROR"
             # if the text hasn't been explicitly highlighted
             # cursor can still be next to the previously highlighted text
             cursor_index = self.text.index(INSERT)
@@ -423,26 +426,27 @@ class Example(Frame):
             if matched_span[1] > 0:
                 selected_string = line[matched_span[0]:matched_span[1]]
                 if detected_entity == 1:
-                    new_string_list = selected_string.strip('[@*]').rsplit('#', 1)
+                    new_string_list = selected_string.strip('[@*]').split('#')
                 elif detected_entity == 2:
                     new_string_list = selected_string.strip('[$*]').rsplit('#', 1)
                 new_string = new_string_list[0]
-                old_entity_type = new_string_list[1]
+                old_entity_type = [x.strip() for x in new_string_list[1:]]
                 line_before_entity = line[:matched_span[0]]
                 line_after_entity = line[matched_span[1]:]
                 selected_string = new_string
                 entity_content = selected_string
-                cursor_index = line_id + '.' + str(int(matched_span[1]) - (len(new_string_list[1]) + 4))
-                old_key = self.pressCommand.keys()[self.pressCommand.values().index(old_entity_type)]
+                cursor_shift = ' '.join(['#' + string for string in new_string_list[1:]])
+                cursor_index = line_id + '.' + str(int(matched_span[1]) - (len(cursor_shift) + 3))
+                old_keys = [self.pressCommand.keys()[self.pressCommand.values().index(entity)] for entity in old_entity_type]
                 if command == "q":
                     print 'q: remove entity label'
-                elif command == 'y':
-                    print "y: confirm recommend label"
-                    entity_content, cursor_index = self.replaceString(selected_string, selected_string, [old_key], cursor_index)
+                # elif command == 'y':
+                #     print "y: confirm recommend label"
+                #     entity_content, cursor_index = self.replaceString(selected_string, selected_string, cursor_index, old_keys, None, cursor_index)
                 else:
                     if len(selected_string) > 0:
                         if command in self.pressCommand:
-                            entity_content, cursor_index = self.replaceString(selected_string, selected_string, [old_key, command], cursor_index)
+                            entity_content, cursor_index = self.replaceString(selected_string, selected_string, cursor_index, command, old_keys)
                         else:
                             return
                 line_before_entity += entity_content
@@ -485,12 +489,12 @@ class Example(Frame):
                     if command in self.pressCommand:
                         if len(selected_string) > 0:
                             # print "insert index: ", self.text.index(INSERT)
-                            followHalf_content, newcursor_index = self.replaceString(followHalf_content, selected_string, [command], newcursor_index)
+                            followHalf_content, newcursor_index = self.replaceString(followHalf_content, selected_string, newcursor_index, command)
                             content = self.addRecommendContent(aboveHalf_content, followHalf_content, self.recommendFlag)
                             # content = aboveHalf_content + followHalf_content
                     self.writeFile(self.fileName, content, newcursor_index)
 
-    def deleteTextInput(self,event):
+    def deleteTextInput(self, event):
         if self.debug:
             print "Action Track: deleteTextInput"
         get_insert = self.text.index(INSERT)
@@ -532,7 +536,7 @@ class Example(Frame):
     #     content = content.replace(string, new_string, 1)
     #     return content, newcursor_index
 
-    def replaceString(self, content, string, replaceTypes, cursor_index):
+    def replaceString(self, content, string, cursor_index, new_key, keys=[]):
         """ Replace a string with the annotated string and move the cursorName
 
             Args:
@@ -548,9 +552,19 @@ class Example(Frame):
                 newcursor_index (str): the recalculated cursor location after
                     inserting the string
         """
+        assert new_key is not None, "new_key cannot be None"
 
-        if all(rt in self.pressCommand for rt in replaceTypes):
-            ann_string = ' '.join(['#' + self.pressCommand[rt] for rt in replaceTypes])
+        if (new_key not in keys):
+            keys += [new_key]
+
+        if all(k in self.pressCommand for k in keys):
+            ann_string = ' '.join(['#' + self.pressCommand[k] for k in keys])
+            print "CURSOR INDEX"
+            print cursor_index
+            print "ANN_STRING"
+            print ann_string
+            if new_key is None:
+                ann_string = ' ' + ann_string
             new_string = "[@" + string + ann_string + "*]"
             newcursor_index = cursor_index.split('.')[0]+"."+str(int(cursor_index.split('.')[1])+len(ann_string)+3)
         else:
@@ -651,8 +665,9 @@ class Example(Frame):
         while True:
             self.text.tag_configure("catagory", background=self.entityColor)
             self.text.tag_configure("edge", background=self.entityColor)
-            pos = self.text.search(self.entityRe, "matchEnd" , "searchLimit",  count=countVar, regexp=True)
-            if pos =="":
+            pos = self.text.search(self.entityRe, "matchEnd", "searchLimit", count=countVar, regexp=True)
+            if pos == "":
+                print "ABOUT TO BREAK"
                 break
             self.text.mark_set("matchStart", pos)
             self.text.mark_set("matchEnd", "%s+%sc" % (pos, countVar.get()))
@@ -693,6 +708,7 @@ class Example(Frame):
             self.text.tag_configure("insideEntityColor", background=self.insideNestEntityColor)
             pos = self.text.search(self.insideNestEntityRe , "matchEnd" , "searchLimit",  count=countVar, regexp=True)
             if pos == "":
+                print "ABOUT TO BREAK 2"
                 break
             self.text.mark_set("matchStart", pos)
             self.text.mark_set("matchEnd", "%s+%sc" % (pos, countVar.get()))
