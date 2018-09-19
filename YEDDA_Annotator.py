@@ -29,6 +29,7 @@ class Example(Frame):
         self.colorAllChunk = True
         self.history = deque(maxlen=20)
         self.currentContent = deque(maxlen=1)
+        # TODO: Adding new categories/shortcuts on the fly
         self.pressCommand = {'a': "Artifical",
                              'b': "Event",
                              'c': "Fin-Concept",
@@ -52,14 +53,6 @@ class Example(Frame):
         self.tagScheme = "BMES"
         self.onlyNP = False  # for exporting sequence
 
-        '''
-        For exporting sequence, if self.seged is True then split words with a
-        space, else split characters without a space. For example, if your data
-        is segmentated Chinese (or English) with words seperated by a space,
-        you need to set this flag to True. If your data is Chinese without
-        segmentation, you need to set this flag to False.
-        '''
-        self.seged = True
         self.configFile = "config"
         self.entityRe = r'\[\@.*?\#.*?\*\](?!\#)'
         self.insideNestEntityRe = r'\[\@\[\@(?!\[\@).*?\#.*?\*\]\#'
@@ -67,7 +60,6 @@ class Example(Frame):
         # configure color
         self.entityColor = "SkyBlue1"
         self.insideNestEntityColor = "light slate blue"
-        # self.recommendColor = 'lightgreen'
         self.selectColor = 'light salmon'
         self.textFontStyle = "Times"
         self.initUI()
