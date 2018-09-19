@@ -3,7 +3,7 @@
 # @Date:   2016-Jan-06 17:11:59
 # @Last Modified by:   Jie Yang,     Contact: jieynlp@gmail.com
 # @Last Modified time: 2018-07-15 20:33:40
-#!/usr/bin/env python
+# !/usr/bin/env python
 # coding=utf-8
 
 from Tkinter import *
@@ -15,7 +15,6 @@ from collections import deque, OrderedDict
 import pickle
 import os.path
 import platform
-# from utils.recommend import *
 import tkMessageBox
 
 
@@ -28,7 +27,6 @@ class Example(Frame):
         self.fileName = ""
         self.debug = True
         self.colorAllChunk = True
-        # self.recommendFlag = False
         self.history = deque(maxlen=20)
         self.currentContent = deque(maxlen=1)
         self.pressCommand = {'a': "Artifical",
@@ -53,7 +51,6 @@ class Example(Frame):
         self.textColumn = 5
         self.tagScheme = "BMES"
         self.onlyNP = False  # for exporting sequence
-        # self.keepRecommend = True
 
         '''
         For exporting sequence, if self.seged is True then split words with a
@@ -65,13 +62,7 @@ class Example(Frame):
         self.seged = True
         self.configFile = "config"
         self.entityRe = r'\[\@.*?\#.*?\*\](?!\#)'
-        # self.entityRe = r'\[\@{\w\W}*\#{\w\W}*\*\](?!\#)'
-        # self.entityRe = r'\[\@(.*|\n)?\#(.*|\n)?\*\](?!\#)'
         self.insideNestEntityRe = r'\[\@\[\@(?!\[\@).*?\#.*?\*\]\#'
-        # self.recommendRe = r'\[\$.*?\#.*?\*\](?!\#)'
-        # self.goldAndrecomRe = r'\[\@.*?\#.*?\*\](?!\#)'
-        # if self.keepRecommend:
-        #     self.goldAndrecomRe = r'\[[\@\$)].*?\#.*?\*\](?!\#)'
 
         # configure color
         self.entityColor = "SkyBlue1"
@@ -86,22 +77,22 @@ class Example(Frame):
         self.parent.title(self.Version)
         self.pack(fill=BOTH, expand=True)
 
-        for idx in range(0,self.textColumn):
-            self.columnconfigure(idx, weight =2)
+        for idx in range(0, self.textColumn):
+            self.columnconfigure(idx, weight=2)
         # self.columnconfigure(0, weight=2)
         self.columnconfigure(self.textColumn+2, weight=1)
         self.columnconfigure(self.textColumn+4, weight=1)
-        for idx in range(0,16):
-            self.rowconfigure(idx, weight =1)
+        for idx in range(0, 16):
+            self.rowconfigure(idx, weight=1)
 
         self.lbl = Label(self, text="File: no file is opened")
         self.lbl.grid(sticky=W, pady=4, padx=5)
-        self.fnt = tkFont.Font(family=self.textFontStyle,size=self.textRow,weight="bold",underline=0)
+        self.fnt = tkFont.Font(family=self.textFontStyle, size=self.textRow, weight="bold", underline=0)
         self.text = Text(self, font=self.fnt, selectbackground=self.selectColor)
         self.text.grid(row=1, column=0, columnspan=self.textColumn, rowspan=self.textRow, padx=12, sticky=E+W+S+N)
 
         self.sb = Scrollbar(self)
-        self.sb.grid(row = 1, column = self.textColumn, rowspan = self.textRow, padx=0, sticky = E+W+S+N)
+        self.sb.grid(row=1, column=self.textColumn, rowspan=self.textRow, padx=0, sticky=E+W+S+N)
         self.text['yscrollcommand'] = self.sb.set
         self.sb['command'] = self.text.yview
         # self.sb.pack()
@@ -109,14 +100,8 @@ class Example(Frame):
         abtn = Button(self, text="Open", command=self.onOpen)
         abtn.grid(row=1, column=self.textColumn + 1)
 
-        # recButton = Button(self, text="RMOn", command=self.setInRecommendModel)
-        # recButton.grid(row=2, column=self.textColumn +1)
-        #
-        # noRecButton = Button(self, text="RMOff", command=self.setInNotRecommendModel)
-        # noRecButton.grid(row=3, column=self.textColumn +1)
-
         ubtn = Button(self, text="ReMap", command=self.renewPressCommand)
-        ubtn.grid(row=2, column=self.textColumn +1, pady=4)
+        ubtn.grid(row=2, column=self.textColumn + 1, pady=4)
 
         # exportbtn = Button(self, text="Export", command=self.generateSequenceFile)
         # exportbtn.grid(row=3, column=self.textColumn + 1, pady=4)
@@ -125,39 +110,13 @@ class Example(Frame):
         cbtn.grid(row=3, column=self.textColumn + 1, pady=4)
 
         self.cursorName = Label(self, text="Cursor: ", foreground="Blue", font=(self.textFontStyle, 14, "bold"))
-        self.cursorName.grid(row=9, column=self.textColumn +1, pady=4)
+        self.cursorName.grid(row=9, column=self.textColumn + 1, pady=4)
         self.cursorIndex = Label(self, text=("row: %s\ncol: %s" % (0, 0)), foreground="red", font=(self.textFontStyle, 14, "bold"))
         self.cursorIndex.grid(row=10, column=self.textColumn + 1, pady=4)
 
-        # self.RecommendModelName = Label(self, text="RModel: ", foreground="Blue", font=(self.textFontStyle, 14, "bold"))
-        # self.RecommendModelName.grid(row=12, column=self.textColumn +1, pady=4)
-        # self.RecommendModelFlag = Label(self, text=str(self.recommendFlag), foreground="red", font=(self.textFontStyle, 14, "bold"))
-        # self.RecommendModelFlag.grid(row=13, column=self.textColumn + 1, pady=4)
-
-        # recommend_value = StringVar()
-        # recommend_value.set("R")
-        # a = Radiobutton(self.parent,  text="Recommend",   width=12, variable=recommend_value, value="R")
-        # # a.grid(row =1 , column = 2)
-        # a.pack(side='left')
-        # b = Radiobutton(self.parent, text="NotRecommend",   width=12,  variable=recommend_value, value="N")
-        # # b.grid(row =1 , column = 3)
-        # b.pack(side='left')
-
-
-        # lbl_entry = Label(self, text="Command:")
-        # lbl_entry.grid(row = self.textRow +1,  sticky = E+W+S+N, pady=4,padx=4)
-        # self.entry = Entry(self)
-        # self.entry.grid(row = self.textRow +1, columnspan=self.textColumn + 1, rowspan = 1, sticky = E+W+S+N, pady=4, padx=80)
-        # self.entry.bind('<Return>', self.returnEnter)
-
-
-
-
-        # for press_key in self.pressCommand.keys():
         for idx in range(0, len(self.allKey)):
             press_key = self.allKey[idx]
 
-            # self.text.bind(press_key, lambda event, arg=press_key:self.textReturnEnter(event,arg))
             self.text.bind(press_key, self.textReturnEnter)
             simplePressKey = "<KeyRelease-" + press_key + ">"
             self.text.bind(simplePressKey, self.deleteTextInput)
@@ -180,11 +139,7 @@ class Example(Frame):
 
         self.setMapShow()
 
-        # self.enter = Button(self, text="Enter", command=self.returnButton)
-        # self.enter.grid(row=self.textRow +1, column=self.textColumn +1)
-
-
-    ## cursor index show with the left click
+    # cursor index show with the left click
     def singleLeftClick(self, event):
         if self.debug:
             print "Action Track: singleLeftClick"
@@ -193,61 +148,36 @@ class Example(Frame):
         cursor_text = ("row: %s\ncol: %s" % (row_column[0], row_column[-1]))
         self.cursorIndex.config(text=cursor_text)
 
-
-    ## TODO: select entity by double left click
+    # TODO: select entity by double left click
     def doubleLeftClick(self, event):
         if self.debug:
             print "Action Track: doubleLeftClick"
         pass
-        # cursor_index = self.text.index(INSERT)
-        # start_index = ("%s - %sc" % (cursor_index, 5))
-        # end_index = ("%s + %sc" % (cursor_index, 5))
-        # self.text.tag_add('SEL', '1.0',"end-1c")
 
-
-
-    ## Disable right click default copy selection behaviour
+    # Disable right click default copy selection behaviour
     def rightClick(self, event):
         if self.debug:
             print "Action Track: rightClick"
         try:
             firstSelection_index = self.text.index(SEL_FIRST)
             cursor_index = self.text.index(SEL_LAST)
-            content = self.text.get('1.0',"end-1c").encode('utf-8')
+            content = self.text.get('1.0', "end-1c").encode('utf-8')
             self.writeFile(self.fileName, content, cursor_index)
         except TclError:
             pass
 
-    # def setInRecommendModel(self):
-    #     self.recommendFlag = True
-    #     self.RecommendModelFlag.config(text = str(self.recommendFlag))
-    #     tkMessageBox.showinfo("Recommend Model", "Recommend Model has been activated!")
-    #
-    #
-    # def setInNotRecommendModel(self):
-    #     self.recommendFlag = False
-    #     self.RecommendModelFlag.config(text = str(self.recommendFlag))
-    #     content = self.getText()
-    #     content = removeRecommendContent(content,self.recommendRe)
-    #     self.writeFile(self.fileName, content, '1.0')
-    #     tkMessageBox.showinfo("Recommend Model", "Recommend Model has been deactivated!")
-
-
     def onOpen(self):
-        ftypes = [('all files', '.*'), ('text files', '.txt'), ('ann files', '.ann')]
-        dlg = tkFileDialog.Open(self, filetypes = ftypes)
-        # file_opt = options =  {}
-        # options['filetypes'] = [('all files', '.*'), ('text files', '.txt')]
-        # dlg = tkFileDialog.askopenfilename(**options)
+        ftypes = [('all files', '.*'),
+                  ('text files', '.txt'),
+                  ('ann files', '.ann')]
+        dlg = tkFileDialog.Open(self, filetypes=ftypes)
         fl = dlg.show()
         if fl != '':
-            self.text.delete("1.0",END)
+            self.text.delete("1.0", END)
             text = self.readFile(fl)
             self.text.insert(END, text)
             self.setNameLabel("File: " + fl)
             self.autoLoadNewFile(self.fileName, "1.0")
-            # self.setDisplay()
-            # self.initAnnotate()
             self.text.mark_set(INSERT, "1.0")
             self.setCursorLabel(self.text.index(INSERT))
 
@@ -258,11 +188,11 @@ class Example(Frame):
         return text
 
     def setFont(self, value):
-        _family=self.textFontStyle
+        _family = self.textFontStyle
         _size = value
-        _weight="bold"
-        _underline=0
-        fnt = tkFont.Font(family= _family,size= _size,weight= _weight,underline= _underline)
+        _weight = "bold"
+        _underline = 0
+        fnt = tkFont.Font(family=_family, size=_size, weight=_weight, underline=_underline)
         Text(self, font=fnt)
 
     def setNameLabel(self, new_file):
@@ -274,26 +204,6 @@ class Example(Frame):
         row_column = cursor_index.split('.')
         cursor_text = ("row: %s\ncol: %s" % (row_column[0], row_column[-1]))
         self.cursorIndex.config(text=cursor_text)
-
-    # def returnButton(self):
-    #     if self.debug:
-    #         print "Action Track: returnButton"
-    #     self.pushToHistory()
-    #     # self.returnEnter(event)
-    #     content = self.entry.get()
-    #     self.clearCommand()
-    #     self.executeEntryCommand(content)
-    #     return content
-    #
-    #
-    # def returnEnter(self, event):
-    #     if self.debug:
-    #         print "Action Track: returnEnter"
-    #     self.pushToHistory()
-    #     content = self.entry.get()
-    #     self.clearCommand()
-    #     self.executeEntryCommand(content)
-    #     return content
 
     def textReturnEnter(self, event):
         """ Event handler for annotation keyboard shortcuts.
@@ -313,20 +223,17 @@ class Example(Frame):
         self.executeCursorCommand(press_key.lower())
         return press_key
 
-    def backToHistory(self,event):
+    def backToHistory(self, event):
         if self.debug:
             print "Action Track: backToHistory"
         if len(self.history) > 0:
             historyCondition = self.history.pop()
-            # print "history condition: ", historyCondition
             historyContent = historyCondition[0]
-            # print "history content: ", historyContent
             cursorIndex = historyCondition[1]
-            # print "get history cursor: ", cursorIndex
             self.writeFile(self.fileName, historyContent, cursorIndex)
         else:
             print "History is empty!"
-        self.text.insert(INSERT, 'p')   # add a word as pad for key release delete
+        self.text.insert(INSERT, 'p')
 
     def keepCurrent(self, event):
         if self.debug:
@@ -335,19 +242,6 @@ class Example(Frame):
         print "before:", self.text.index(INSERT)
         self.text.insert(INSERT, 'p')
         print "after:", self.text.index(INSERT)
-
-    # def clearCommand(self):
-    #     """ Clear the command entry widget (bottom of grid)
-    #
-    #         Args:
-    #             None
-    #
-    #         Returns:
-    #             None
-    #     """
-    #     if self.debug:
-    #         print "Action Track: clearCommand"
-    #     self.entry.delete(0, 'end')
 
     def getText(self):
         textContent = self.text.get("1.0", "end-1c")
@@ -371,15 +265,14 @@ class Example(Frame):
             firstSelection_index = self.text.index(SEL_FIRST)
             cursor_index = self.text.index(SEL_LAST)
             aboveHalf_content = self.text.get('1.0', firstSelection_index)
-            followHalf_content = self.text.get(firstSelection_index, "end-1c") # contains the selected string
+            followHalf_content = self.text.get(firstSelection_index, "end-1c")  # contains the selected string
             selected_string = self.text.selection_get()
             if re.match(self.entityRe, selected_string) is not None:
-                ## if the selected string has been selected before (exactly)
-                new_string_list = selected_string.strip('[@]').rsplit('#',1)
+                # if the selected string has been selected before (exactly)
+                new_string_list = selected_string.strip('[@]').rsplit('#', 1)
                 new_string = new_string_list[0]
                 followHalf_content = followHalf_content.replace(selected_string, new_string, 1)
                 selected_string = new_string
-                # cursor_index = "%s - %sc" % (cursor_index, str(len(new_string_list[1])+4))
                 cursor_index = cursor_index.split('.')[0]+"."+str(int(cursor_index.split('.')[1])-len(new_string_list[1])+4)
             afterEntity_content = followHalf_content[len(selected_string):]
 
@@ -390,7 +283,6 @@ class Example(Frame):
                     entity_content, cursor_index = self.replaceString(selected_string, selected_string, cursor_index, command)
             aboveHalf_content += entity_content
             content = aboveHalf_content + afterEntity_content
-            # content = self.addRecommendContent(aboveHalf_content, afterEntity_content, self.recommendFlag)
             content = content.encode('utf-8')
             self.writeFile(self.fileName, content, cursor_index)
 
@@ -404,7 +296,7 @@ class Example(Frame):
             belowLine_content = self.text.get(str(int(line_id) + 1) + '.0', "end-1c")
             line = self.text.get(line_id + '.0', line_id + '.end')
             matched_span = (-1, -1)
-            detected_entity = -1 # detected entity type:－1 not detected, 1 detected gold, 2 detected recommend
+            detected_entity = -1  # detected entity type:－1 not detected, 1 detected gold, 2 detected recommend
             for match in re.finditer(self.entityRe, line):
                 if self.debug:
                     print "GOLD"
@@ -417,13 +309,7 @@ class Example(Frame):
             if detected_entity == -1:
                 if self.debug:
                     print "NOT DETECTED"
-                # for match in re.finditer(self.recommendRe, line):
-                #     if match.span()[0] <= int(column_id) & int(column_id) <= match.span()[1]:
-                #         if self.debug:
-                #             print "DETECTED RECOMMEND"
-                #         matched_span = match.span()
-                #         detected_entity = 2
-                #         break
+
             line_before_entity = line
             line_after_entity = ""
             # if the right side of matched string is not left aligned
@@ -431,8 +317,6 @@ class Example(Frame):
                 selected_string = line[matched_span[0]:matched_span[1]]
                 if detected_entity == 1:
                     new_string_list = selected_string.strip('[@*]').split('#')
-                # elif detected_entity == 2:
-                #     new_string_list = selected_string.strip('[$*]').rsplit('#', 1)
                 new_string = new_string_list[0]
                 old_entity_type = [x.strip() for x in new_string_list[1:]]
                 line_before_entity = line[:matched_span[0]]
@@ -444,9 +328,6 @@ class Example(Frame):
                 old_keys = [self.pressCommand.keys()[self.pressCommand.values().index(entity)] for entity in old_entity_type]
                 if command == "q":
                     print 'q: remove entity label'
-                # elif command == 'y':
-                #     print "y: confirm recommend label"
-                #     entity_content, cursor_index = self.replaceString(selected_string, selected_string, cursor_index, old_keys, None, cursor_index)
                 else:
                     if len(selected_string) > 0:
                         if command in self.pressCommand:
@@ -464,40 +345,9 @@ class Example(Frame):
             else:
                 followHalf_content = line_after_entity
 
-            # content = self.addRecommendContent(aboveHalf_content, followHalf_content, self.recommendFlag)
             content = aboveHalf_content + followHalf_content
             content = content.encode('utf-8')
             self.writeFile(self.fileName, content, cursor_index)
-
-    # def executeEntryCommand(self, command):
-    #     if self.debug:
-    #         print "Action Track: executeEntryCommand"
-    #     if len(command) == 0:
-    #         currentCursor = self.text.index(INSERT)
-    #         newCurrentCursor = str(int(currentCursor.split('.')[0])+1) + ".0"
-    #         self.text.mark_set(INSERT, newCurrentCursor)
-    #         self.setCursorLabel(newCurrentCursor)
-    #     else:
-    #         command_list = decompositCommand(command)
-    #         for idx in range(0, len(command_list)):
-    #             command = command_list[idx]
-    #             if len(command) == 2:
-    #                 select_num = int(command[0])
-    #                 command = command[1]
-    #                 content = self.getText()
-    #                 cursor_index = self.text.index(INSERT)
-    #                 newcursor_index = cursor_index.split('.')[0] + "." + str(int(cursor_index.split('.')[1]) + select_num)
-    #                 selected_string = self.text.get(cursor_index, newcursor_index).encode('utf-8')
-    #                 aboveHalf_content = self.text.get('1.0', cursor_index).encode('utf-8')
-    #                 followHalf_content = self.text.get(cursor_index, "end-1c").encode('utf-8')
-    #                 if command in self.pressCommand:
-    #                     if len(selected_string) > 0:
-    #                         # print "insert index: ", self.text.index(INSERT)
-    #                         followHalf_content, newcursor_index = self.replaceString(followHalf_content, selected_string, newcursor_index, command)
-    #                         content = aboveHalf_content + followHalf_content
-    #                         # content = self.addRecommendContent(aboveHalf_content, followHalf_content, self.recommendFlag)
-    #                         # content = aboveHalf_content + followHalf_content
-    #                 self.writeFile(self.fileName, content, newcursor_index)
 
     def deleteTextInput(self, event):
         if self.debug:
@@ -515,31 +365,6 @@ class Example(Frame):
             followHalf_content = followHalf_content.replace(get_input, '', 1)
         content = aboveHalf_content + followHalf_content
         self.writeFile(self.fileName, content, last_insert)
-
-    # def replaceString(self, content, string, replaceType, cursor_index):
-    #     """ Replace a string with the annotated string and move the cursorName
-    #
-    #         Args:
-    #             content (str): the string to format
-    #             string (str): also the string to format? not sure why this is
-    #                 being passed twice
-    #             replaceType (str): lowercase keyboard shortcut character
-    #             cursor_index (str): location of the cursor in the text box
-    #
-    #         Returns:
-    #             content (str): the annotated string
-    #             newcursor_index (str): the recalculated cursor location after
-    #                 inserting the string
-    #     """
-    #     if replaceType in self.pressCommand:
-    #         new_string = "[@" + string + "#" + self.pressCommand[replaceType] + "*]"
-    #         newcursor_index = cursor_index.split('.')[0]+"."+str(int(cursor_index.split('.')[1])+len(self.pressCommand[replaceType])+5)
-    #     else:
-    #         print "Invaild command!"
-    #         print "cursor index: ", self.text.index(INSERT)
-    #         return content, cursor_index
-    #     content = content.replace(string, new_string, 1)
-    #     return content, newcursor_index
 
     def replaceString(self, content, string, cursor_index, new_key, keys=[]):
         """ Replace a string with the annotated string and move the cursorName
@@ -571,7 +396,7 @@ class Example(Frame):
             if new_key is None:
                 ann_string = ' ' + ann_string
             new_string = "[@" + string + ann_string + "*]"
-            newcursor_index = cursor_index.split('.')[0]+"."+str(int(cursor_index.split('.')[1])+len(ann_string)+3)
+            newcursor_index = cursor_index.split('.')[0] + "." + str(int(cursor_index.split('.')[1]) + len(ann_string)+3)
         else:
             print "Invaild command!"
             print "cursor index: ", self.text.index(INSERT)
@@ -601,22 +426,13 @@ class Example(Frame):
                 ann_file.write(content)
                 ann_file.close()
             else:
-                new_name = fileName+'.ann'
+                new_name = fileName + '.ann'
                 ann_file = open(new_name, 'w')
                 ann_file.write(content)
                 ann_file.close()
             self.autoLoadNewFile(new_name, newcursor_index)
         else:
             print "Don't write to empty file!"
-
-    # def addRecommendContent(self, train_data, decode_data, recommendMode):
-    #     if not recommendMode:
-    #         content = train_data + decode_data
-    #     else:
-    #         if self.debug:
-    #             print "Action Track: addRecommendContent, start Recommend entity"
-    #         content = maximum_matching(train_data, decode_data)
-    #     return content
 
     def autoLoadNewFile(self, fileName, newcursor_index):
         """ Automatically load the updated file so that we are always working
@@ -633,7 +449,7 @@ class Example(Frame):
         if self.debug:
             print "Action Track: autoLoadNewFile"
         if len(fileName) > 0:
-            self.text.delete("1.0",END)
+            self.text.delete("1.0", END)
             text = self.readFile(fileName)
             self.text.insert("end-1c", text)
             self.setNameLabel("File: " + fileName)
@@ -641,7 +457,6 @@ class Example(Frame):
             self.text.see(newcursor_index)
             self.setCursorLabel(newcursor_index)
             self.setColorDisplay()
-
 
     def setColorDisplay(self):
         if self.debug:
@@ -657,16 +472,10 @@ class Example(Frame):
             self.text.mark_set("matchStart", "1.0")
             self.text.mark_set("matchEnd", "1.0")
             self.text.mark_set("searchLimit", 'end-1c')
-            # self.text.mark_set("recommend_matchStart", "1.0")
-            # self.text.mark_set("recommend_matchEnd", "1.0")
-            # self.text.mark_set("recommend_searchLimit", 'end-1c')
         else:
             self.text.mark_set("matchStart", lineStart)
             self.text.mark_set("matchEnd", lineStart)
             self.text.mark_set("searchLimit", lineEnd)
-            # self.text.mark_set("recommend_matchStart", lineStart)
-            # self.text.mark_set("recommend_matchEnd", lineStart)
-            # self.text.mark_set("recommend_searchLimit", lineEnd)
         while True:
             self.text.tag_configure("catagory", background=self.entityColor)
             self.text.tag_configure("edge", background=self.entityColor)
@@ -679,28 +488,13 @@ class Example(Frame):
             first_pos = pos
             second_pos = "%s+%sc" % (pos, str(1))
             lastsecond_pos = "%s+%sc" % (pos, str(int(countVar.get())-1))
-            last_pos = "%s + %sc" %(pos, countVar.get())
+            last_pos = "%s + %sc" % (pos, countVar.get())
 
             self.text.tag_add("catagory", second_pos, lastsecond_pos)
             self.text.tag_add("edge", first_pos, second_pos)
             self.text.tag_add("edge", lastsecond_pos, last_pos)
 
-        # ## color recommend type
-        # while True:
-        #     self.text.tag_configure("recommend", background=self.recommendColor)
-        #     recommend_pos = self.text.search(self.recommendRe, "recommend_matchEnd" , "recommend_searchLimit",  count=countVar, regexp=True)
-        #     if recommend_pos =="":
-        #         break
-        #     self.text.mark_set("recommend_matchStart", recommend_pos)
-        #     self.text.mark_set("recommend_matchEnd", "%s+%sc" % (recommend_pos, countVar.get()))
-        #
-        #     first_pos = recommend_pos
-        #     # second_pos = "%s+%sc" % (recommend_pos, str(1))
-        #     lastsecond_pos = "%s+%sc" % (recommend_pos, str(int(countVar.get())))
-        #     self.text.tag_add("recommend", first_pos, lastsecond_pos)
-
-
-        ## color the most inside span for nested span, scan from begin to end again
+        # color the most inside span for nested span, scan from begin to end
         if self.colorAllChunk:
             self.text.mark_set("matchStart", "1.0")
             self.text.mark_set("matchEnd", "1.0")
@@ -716,8 +510,8 @@ class Example(Frame):
                 break
             self.text.mark_set("matchStart", pos)
             self.text.mark_set("matchEnd", "%s+%sc" % (pos, countVar.get()))
-            first_pos = "%s + %sc" %(pos, 2)
-            last_pos = "%s + %sc" %(pos, str(int(countVar.get())-1))
+            first_pos = "%s + %sc" % (pos, 2)
+            last_pos = "%s + %sc" % (pos, str(int(countVar.get())-1))
             self.text.tag_add("insideEntityColor", first_pos, last_pos)
 
     def pushToHistory(self):
@@ -747,13 +541,11 @@ class Example(Frame):
         currentList = []
         content = self.getText()
         cursorPosition = self.text.index(INSERT)
-        # print "push to history cursor: ", cursorPosition
         currentList.append(content)
         currentList.append(cursorPosition)
         self.history.append(currentList)
 
-
-    ## update shortcut map
+    # update shortcut map
     def renewPressCommand(self):
         if self.debug:
             print "Action Track: renewPressCommand"
@@ -770,39 +562,35 @@ class Example(Frame):
             seq += 1
         self.pressCommand = new_dict
         for idx in range(1, delete_num+1):
-            self.labelEntryList[listLength-idx].delete(0,END)
+            self.labelEntryList[listLength-idx].delete(0, END)
             self.shortcutLabelList[listLength-idx].config(text="NON= ")
         with open(self.configFile, 'wb') as fp:
             pickle.dump(self.pressCommand, fp)
         self.setMapShow()
         tkMessageBox.showinfo("Remap Notification", "Shortcut map has been updated!\n\nConfigure file has been saved in File:" + self.configFile)
 
-
-    ## show shortcut map
+    # show shortcut map
     def setMapShow(self):
         if os.path.isfile(self.configFile):
-            with open (self.configFile, 'rb') as fp:
+            with open(self.configFile, 'rb') as fp:
                 self.pressCommand = pickle.load(fp)
         hight = len(self.pressCommand)
         width = 2
         row = 0
-        mapLabel = Label(self, text ="Shortcuts map Labels", foreground="blue", font=(self.textFontStyle, 14, "bold"))
-        mapLabel.grid(row=0, column = self.textColumn +2,columnspan=2, rowspan = 1, padx = 10)
+        mapLabel = Label(self, text="Shortcuts map Labels", foreground="blue", font=(self.textFontStyle, 14, "bold"))
+        mapLabel.grid(row=0, column=self.textColumn + 2, columnspan=2, rowspan=1, padx=10)
         self.labelEntryList = []
         self.shortcutLabelList = []
         for key in sorted(self.pressCommand):
             row += 1
-            # print "key: ", key, "  command: ", self.pressCommand[key]
-            symbolLabel = Label(self, text =key.upper() + ": ", foreground="blue", font=(self.textFontStyle, 14, "bold"))
-            symbolLabel.grid(row=row, column = self.textColumn +2,columnspan=1, rowspan = 1, padx = 3)
+            symbolLabel = Label(self, text=key.upper() + ": ", foreground="blue", font=(self.textFontStyle, 14, "bold"))
+            symbolLabel.grid(row=row, column=self.textColumn + 2, columnspan=1, rowspan=1, padx=3)
             self.shortcutLabelList.append(symbolLabel)
 
             labelEntry = Entry(self, foreground="blue", font=(self.textFontStyle, 14, "bold"))
             labelEntry.insert(0, self.pressCommand[key])
-            labelEntry.grid(row=row, column = self.textColumn +3, columnspan=1, rowspan = 1)
+            labelEntry.grid(row=row, column=self.textColumn + 3, columnspan=1, rowspan=1)
             self.labelEntryList.append(labelEntry)
-            # print "row: ", row
-
 
     def getCursorIndex(self):
         return self.text.index(INSERT)
@@ -964,32 +752,9 @@ class Example(Frame):
 #     output_content += content[last_match_end:]
 #     return output_content
 
-
-
-
-
-
-# def decompositCommand(command_string):
-#     command_list = []
-#     each_command = []
-#     num_select = ''
-#     for idx in range(0, len(command_string)):
-#         if command_string[idx].isdigit():
-#             num_select += command_string[idx]
-#         else:
-#             each_command.append(num_select)
-#             each_command.append(command_string[idx])
-#             command_list.append(each_command)
-#             each_command = []
-#             num_select =''
-#     # print command_list
-#     return command_list
-
-
-
 def main():
     print("SUTDAnnotator launched!")
-    print(("OS:%s")%(platform.system()))
+    print(("OS: %s") % (platform.system()))
     root = Tk()
     root.geometry("1300x700+200+200")
     app = Example(root)
