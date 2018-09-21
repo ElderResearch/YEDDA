@@ -26,10 +26,10 @@ class Example(Frame):
         self.parent = parent
         self.fileName = ""
         self.debug = True
-        self.colorAllChunk = True
+        self.colorAllChunk = False
         self.history = deque(maxlen=20)
         self.currentContent = deque(maxlen=1)
-        self.prev_selection_index = -1
+        self.prev_selection_index = None
         # TODO: Adding new categories/shortcuts on the fly
         self.pressCommand = {'a': "Artifical",
                              'b': "Event",
@@ -144,7 +144,6 @@ class Example(Frame):
         cursor_text = ("row: %s\ncol: %s" % (row_column[0], row_column[-1]))
         self.cursorIndex.config(text=cursor_text)
 
-    # TODO: select entity by double left click
     def doubleLeftClick(self, event):
         if self.debug:
             print "Action Track: doubleLeftClick"
@@ -216,7 +215,6 @@ class Example(Frame):
             print "Action Track: textReturnEnter"
         self.pushToHistory()
         print "event: ", press_key
-        # self.clearCommand()
         self.executeCursorCommand(press_key.lower())
         return press_key
 
@@ -245,235 +243,6 @@ class Example(Frame):
         textContent = textContent.encode('utf-8')
         return textContent
 
-    # def executeCursorCommand(self, command):
-    #     """ Annotate a section of text according to the command (shortcut char)
-    #
-    #         Args:
-    #             command (str): lowercase keyboard shortcut character
-    #
-    #         Returns:
-    #             None
-    #     """
-    #     if self.debug:
-    #         print "Action Track: executeCursorCommand"
-    #     content = self.getText()
-    #     try:
-    #         first_cursor_index = self.text.index(SEL_FIRST)
-    #         cursor_index = self.text.index(SEL_LAST)
-    #         self.prev_selection_index = first_cursor_index
-    #
-    #         # store line and column ids for the selected text region
-    #         [first_line_id, first_column_id] = first_cursor_index.split('.')
-    #         [last_line_id, last_column_id] = cursor_index.split('.')
-    #
-    #         # break doc into sections
-    #         above_content = self.text.get('1.0', first_cursor_index)
-    #         selected_string = self.text.selection_get()
-    #         below_content = self.text.get(cursor_index, "end-1c")
-    #         # followHalf_content = self.text.get(first_cursor_index, "end-1c")  # contains the selected string
-    #
-    #
-    #         if re.match(self.entityRe, selected_string) is not None:
-    #             # TODO: handle the highlighting case
-    #             new_string_list = selected_string.strip('[@*]').split('#')
-    #             new_string = new_string_list[0]
-    #             followHalf_content = followHalf_content.replace(selected_string, new_string, 1)
-    #             selected_string = new_string
-    #             cursor_shift = ' '.join(['#' + string for string in new_string_list[1:]])
-    #             cursor_index = cursor_index.split('.')[0] + "." + str(int(cursor_index.split('.')[1]) - len(cursor_shift) + 3)
-    #         afterEntity_content = followHalf_content[len(selected_string):]
-    #
-    #         if command == "q":
-    #             print 'q: remove entity label'
-    #         else:
-    #             if len(selected_string) > 0:
-    #                 entity_content, cursor_index = self.replaceString(selected_string, selected_string, cursor_index, command)
-    #         above_content += entity_content
-    #         content = above_content + afterEntity_content
-    #         content = content.encode('utf-8')
-    #         self.writeFile(self.fileName, content, cursor_index)
-    #
-    #         # firstSelection_index = self.text.index(SEL_FIRST)  # raises TclError
-    #         # [first_line_id, first_column_id] = cursor_index.split('.')
-    #         # self.prev_selection_index = firstSelection_index
-    #         # cursor_index = self.text.index(SEL_LAST)
-    #         # aboveHalf_content = self.text.get('1.0', firstSelection_index)
-    #         #
-    #         # # followHalf_content = self.text.get(firstSelection_index, "end-1c")  # contains the selected string
-    #         # selected_string = self.text.selection_get()
-    #         # if re.match(self.entityRe, selected_string) is not None:
-    #         #     # TODO: handle the highlighting case
-    #         #     # if the selected string has been selected before (exactly)
-    #         #     new_string_list = selected_string.strip('[@*]').split('#')
-    #         #     new_string = new_string_list[0]
-    #         #     followHalf_content = followHalf_content.replace(selected_string, new_string, 1)
-    #         #     selected_string = new_string
-    #         #     cursor_shift = ' '.join(['#' + string for string in new_string_list[1:]])
-    #         #     cursor_index = cursor_index.split('.')[0] + "." + str(int(cursor_index.split('.')[1]) - len(cursor_shift) + 3)
-    #         # afterEntity_content = followHalf_content[len(selected_string):]
-    #         #
-    #         # if command == "q":
-    #         #     print 'q: remove entity label'
-    #         # else:
-    #         #     if len(selected_string) > 0:
-    #         #         entity_content, cursor_index = self.replaceString(selected_string, selected_string, cursor_index, command)
-    #         # aboveHalf_content += entity_content
-    #         # content = aboveHalf_content + afterEntity_content
-    #         # content = content.encode('utf-8')
-    #         # self.writeFile(self.fileName, content, cursor_index)
-    #
-    #     except TclError:
-    #         # nothing has been highlighted and we are not adding to a previous
-    #         # annotation
-    #         if self.prev_selection_index is None:
-    #             return
-    #
-    #         cursor_index = self.text.index(INSERT)
-    #         [line_id, column_id] = cursor_index.split('.')
-    #         [prev_line_id, prev_column_id] = self.prev_selection_index.split('.')
-    #
-    #         # Get all of the text up to the selection
-    #         # at the beginning of a line
-    #         if int(prev_column_id) == 0:
-    #             # at the beginning of the first line of the document
-    #             if int(prev_line_id) == 1:
-    #                 above_content = ''
-    #             else:  # at the beginning of some line (not the first)
-    #                 above_content = self.text.get('1.0', str(int(prev_line_id) - 1) + '.end') + '\n'
-    #         else:  # somewhere in a line (not the beginning)
-    #             above_content = self.text.get('1.0', str(int(prev_line_id)) + '.' + str(int(prev_column_id)))
-    #
-    #         # Get all of the text after the selection
-    #         # need the index of the last character of the last line
-    #         [last_line_id, last_column_id] = self.text.index('end-1c').split('.')
-    #         # need the index of the last character of the selection's last line
-    #         [temp_line_id, temp_column_id] = self.text.index(prev_line_id + '.end').split('.')
-    #
-    #         # at the end of a line
-    #         if column_id == temp_column_id:
-    #             # at the end of the last line
-    #             if line_id == last_line_id:
-    #                 below_content = ''
-    #             else:  # at the end of some line (not the last)
-    #                 below_content = '\n' + self.text.get(str(int(line_id) + 1) + '.0', 'end-1c')
-    #         else:  # somewhere in a line (not the end)
-    #             below_content = self.text.get(line_id + '.' + str(int(column_id)), 'end-1c')
-    #
-    #         # find the old entity inside the selected text
-    #         text = self.text.get(self.prev_selection_index, line_id + '.' + str(int(column_id)))
-    #         matched_span = (-1, -1)
-    #         entity_detected = False
-    #         for match in re.finditer(self.entityRe, text):
-    #             if self.debug:
-    #                 print "ENTITY DETECTED"
-    #             # if the cursor position is inside (inclusive) of the selected text
-    #             matched_span = match.span()
-    #             entity_detected = True
-    #             break
-    #
-    #         if not entity_detected:
-    #             if self.debug:
-    #                 print "ENTITY NOT DETECTED"
-    #
-    #         text_before_entity = text
-    #         text_after_entity = ""
-    #         # if the entity match doesn't end at the beginning of a line
-    #         if matched_span[1] > 0:
-    #             selected_string = text[matched_span[0]:matched_span[1]]
-    #             if entity_detected:
-    #                 new_string_list = selected_string.strip('[@*]').split('#')
-    #             new_string = new_string_list[0]
-    #             old_entity_type = [x.strip() for x in new_string_list[1:]]
-    #             text_before_entity = text[:matched_span[0]]
-    #             text_after_entity = text[matched_span[1]:]
-    #             selected_string = new_string
-    #             entity_content = selected_string
-    #             cursor_shift = ' '.join(['#' + string for string in new_string_list[1:]])
-    #             cursor_index = line_id + '.' + str(int(matched_span[1]) - (len(cursor_shift) + 3))
-    #             old_keys = [self.pressCommand.keys()[self.pressCommand.values().index(entity)] for entity in old_entity_type]
-    #             if command == "q":
-    #                 print 'q: remove entity label'
-    #             else:
-    #                 if len(selected_string) > 0:
-    #                     if command in self.pressCommand:
-    #                         entity_content, cursor_index = self.replaceString(selected_string, selected_string, cursor_index, command, old_keys)
-    #                     else:
-    #                         return
-    #             text_before_entity += entity_content
-    #
-    #         # if above_content != '':
-    #         #     aboveHalf_content = above_content + text_before_entity
-    #         # else:
-    #         #     aboveHalf_content = line_before_entity
-    #         #
-    #         # if belowLine_content != '':
-    #         #     followHalf_content = line_after_entity + '\n' + belowLine_content
-    #         # else:
-    #             # followHalf_content = line_after_entity
-    #
-    #         content = above_content + text_before_entity + below_content
-    #         content = content.encode('utf-8')
-    #         self.writeFile(self.fileName, content, cursor_index)
-    #
-    #         # aboveLine_content = self.text.get('1.0', str(int(line_id)-1) + '.end')
-    #         # belowLine_content = self.text.get(str(int(line_id) + 1) + '.0', "end-1c")
-    #         # # Herein lies the issue...we are working on a line by line basis
-    #         # line = self.text.get(line_id + '.0', line_id + '.end')
-    #         # matched_span = (-1, -1)
-    #         # entity_detected = False
-    #         # for match in re.finditer(self.entityRe, line):
-    #         #     if self.debug:
-    #         #         print "ENTITY DETECTED"
-    #         #     # if the cursor position is inside (inclusive) of the selected
-    #         #     # text
-    #         #     if match.span()[0] <= int(column_id) & int(column_id) <= match.span()[1]:
-    #         #         matched_span = match.span()
-    #         #         entity_detected = True
-    #         #         break
-    #         #
-    #         # if not entity_detected:
-    #         #     if self.debug:
-    #         #         print "ENTITY NOT DETECTED"
-    #         #
-    #         # line_before_entity = line
-    #         # line_after_entity = ""
-    #         # # if the right side of matched string is not left aligned
-    #         # if matched_span[1] > 0:
-    #         #     selected_string = line[matched_span[0]:matched_span[1]]
-    #         #     if entity_detected:
-    #         #         new_string_list = selected_string.strip('[@*]').split('#')
-    #         #     new_string = new_string_list[0]
-    #         #     old_entity_type = [x.strip() for x in new_string_list[1:]]
-    #         #     line_before_entity = line[:matched_span[0]]
-    #         #     line_after_entity = line[matched_span[1]:]
-    #         #     selected_string = new_string
-    #         #     entity_content = selected_string
-    #         #     cursor_shift = ' '.join(['#' + string for string in new_string_list[1:]])
-    #         #     cursor_index = line_id + '.' + str(int(matched_span[1]) - (len(cursor_shift) + 3))
-    #         #     old_keys = [self.pressCommand.keys()[self.pressCommand.values().index(entity)] for entity in old_entity_type]
-    #         #     if command == "q":
-    #         #         print 'q: remove entity label'
-    #         #     else:
-    #         #         if len(selected_string) > 0:
-    #         #             if command in self.pressCommand:
-    #         #                 entity_content, cursor_index = self.replaceString(selected_string, selected_string, cursor_index, command, old_keys)
-    #         #             else:
-    #         #                 return
-    #         #     line_before_entity += entity_content
-    #         # if aboveLine_content != '':
-    #         #     aboveHalf_content = aboveLine_content + '\n' + line_before_entity
-    #         # else:
-    #         #     aboveHalf_content = line_before_entity
-    #         #
-    #         # if belowLine_content != '':
-    #         #     followHalf_content = line_after_entity + '\n' + belowLine_content
-    #         # else:
-    #         #     followHalf_content = line_after_entity
-    #         #
-    #         # content = aboveHalf_content + followHalf_content
-    #         # content = content.encode('utf-8')
-    #         # self.writeFile(self.fileName, content, cursor_index)
-
     def executeCursorCommand(self, command):
         """ Annotate a section of text according to the command (shortcut char)
 
@@ -493,105 +262,37 @@ class Example(Frame):
             cursor_index = self.text.index(SEL_LAST)
             self.prev_selection_index = first_cursor_index
 
-            # store line and column ids for the selected text region
-            [first_line_id, first_column_id] = first_cursor_index.split('.')
-            [last_line_id, last_column_id] = cursor_index.split('.')
-
             # break doc into sections
             above_content = self.text.get('1.0', first_cursor_index)
             selected_string = self.text.selection_get()
             below_content = self.text.get(cursor_index, "end-1c")
-
-            matched_span = (-1, -1)
-            entity_detected = False
-            match = re.match(self.entityRe, selected_string)
+            entity_content = ''
 
             old_commands = []
-
-            if match is None:  # make new annotation
-                if command == "q":
-                    print 'q: remove entity label'
-                if self.debug:
-                    print "ENTITY NOT DETECTED"
-
-                if command in self.pressCommand:
-                    entity_content, cursor_index = self.replaceString(selected_string, selected_string, first_cursor_index, command, old_commands)
-                else:
-                    return
-
-                content = above_content + entity_content + below_content
-                content = content.encode('utf-8')
-                self.writeFile(self.fileName, content, cursor_index)
-            else:  # update old annotation
-                entity_detected = True
+            if re.match(self.entityRe, selected_string) is not None:  # update old annotation
                 if self.debug:
                     print "ENTITY DETECTED"
 
-                matched_span = match.span()
-
                 # parse the selected text into original text and old entities
                 parsed_string = selected_string.strip('[@*]').split('#')
-                orig_string = parsed_string[0]
+                selected_string = parsed_string[0]
                 old_entities = [x.strip() for x in parsed_string[1:]]
                 old_commands = [self.pressCommand.keys()[self.pressCommand.values().index(entity)] for entity in old_entities]
 
-                # add the entities together into one large entity string
-                entity_string = ' '.join(['#' + string for string in parsed_string[1:]])
-
-                if command == "q":
-                    print 'q: remove entity label'
-                else:
-                    if len(orig_string) > 0:
-                        if command in self.pressCommand:
-                            entity_content, cursor_index = self.replaceString(orig_string, orig_string, first_cursor_index, command, old_commands)
-                        else:
-                            return
-                content = above_content + entity_content + below_content
-                content = content.encode('utf-8')
-                self.writeFile(self.fileName, content, cursor_index)
-
-
-
-
-
-
-                # new_string_list = selected_string.strip('[@*]').split('#')
-                # new_string = new_string_list[0]
-                # followHalf_content = followHalf_content.replace(selected_string, new_string, 1)
-                # selected_string = new_string
-                # cursor_shift = ' '.join(['#' + string for string in new_string_list[1:]])
-                # cursor_index = cursor_index.split('.')[0] + "." + str(int(cursor_index.split('.')[1]) - len(cursor_shift) + 3)
-
-            # firstSelection_index = self.text.index(SEL_FIRST)  # raises TclError
-            # [first_line_id, first_column_id] = cursor_index.split('.')
-            # self.prev_selection_index = firstSelection_index
-            # cursor_index = self.text.index(SEL_LAST)
-            # aboveHalf_content = self.text.get('1.0', firstSelection_index)
-            #
-            # # followHalf_content = self.text.get(firstSelection_index, "end-1c")  # contains the selected string
-            # selected_string = self.text.selection_get()
-            # if re.match(self.entityRe, selected_string) is not None:
-            #     # TODO: handle the highlighting case
-            #     # if the selected string has been selected before (exactly)
-            #     new_string_list = selected_string.strip('[@*]').split('#')
-            #     new_string = new_string_list[0]
-            #     followHalf_content = followHalf_content.replace(selected_string, new_string, 1)
-            #     selected_string = new_string
-            #     cursor_shift = ' '.join(['#' + string for string in new_string_list[1:]])
-            #     cursor_index = cursor_index.split('.')[0] + "." + str(int(cursor_index.split('.')[1]) - len(cursor_shift) + 3)
-            # afterEntity_content = followHalf_content[len(selected_string):]
-            #
-            # if command == "q":
-            #     print 'q: remove entity label'
-            # else:
-            #     if len(selected_string) > 0:
-            #         entity_content, cursor_index = self.replaceString(selected_string, selected_string, cursor_index, command)
-            # aboveHalf_content += entity_content
-            # content = aboveHalf_content + afterEntity_content
-            # content = content.encode('utf-8')
-            # self.writeFile(self.fileName, content, cursor_index)
+            if command == "q":
+                print 'q: remove entity label'
+            else:
+                if len(selected_string) > 0:
+                    if command in self.pressCommand:
+                        entity_content, cursor_index = self.replaceString(selected_string, selected_string, first_cursor_index, command, old_commands)
+                    else:
+                        return
+            content = above_content + entity_content + below_content
+            content = content.encode('utf-8')
+            self.writeFile(self.fileName, content, cursor_index)
 
         except TclError:
+
             # nothing has been highlighted and we are not adding to a previous
             # annotation
             if self.prev_selection_index is None:
@@ -640,10 +341,6 @@ class Example(Frame):
                 entity_detected = True
                 break
 
-            if not entity_detected:
-                if self.debug:
-                    print "ENTITY NOT DETECTED"
-
             text_before_entity = text
             text_after_entity = ""
             # if the entity match doesn't end at the beginning of a line
@@ -658,7 +355,6 @@ class Example(Frame):
                 selected_string = new_string
                 entity_content = selected_string
                 cursor_shift = ' '.join(['#' + string for string in new_string_list[1:]])
-                # cursor_index = line_id + '.' + str(int(matched_span[1]) - (len(cursor_shift) + 3))
                 old_keys = [self.pressCommand.keys()[self.pressCommand.values().index(entity)] for entity in old_entity_type]
                 if command == "q":
                     print 'q: remove entity label'
@@ -670,24 +366,9 @@ class Example(Frame):
                             return
                 text_before_entity += entity_content
 
-            # if above_content != '':
-            #     aboveHalf_content = above_content + text_before_entity
-            # else:
-            #     aboveHalf_content = line_before_entity
-            #
-            # if belowLine_content != '':
-            #     followHalf_content = line_after_entity + '\n' + belowLine_content
-            # else:
-                # followHalf_content = line_after_entity
-
             content = above_content + text_before_entity + below_content
             content = content.encode('utf-8')
             self.writeFile(self.fileName, content, cursor_index)
-
-            # aboveLine_content = self.text.get('1.0', str(int(line_id)-1) + '.end')
-            # belowLine_content = self.text.get(str(int(line_id) + 1) + '.0', "end-1c")
-            # # Herein lies the issue...we are working on a line by line basis
-            # line = self.text.get(line_id + '.0', line_id + '.end')
 
     def deleteTextInput(self, event):
         if self.debug:
@@ -698,7 +379,6 @@ class Example(Frame):
         last_insert = insert_list[0] + "." + str(int(insert_list[1])-1)
         print last_insert
         get_input = self.text.get(last_insert, get_insert).encode('utf-8')
-        # print "get_input: ", get_input
         aboveHalf_content = self.text.get('1.0', last_insert).encode('utf-8')
         followHalf_content = self.text.get(last_insert, "end-1c").encode('utf-8')
         if len(get_input) > 0:
@@ -733,7 +413,12 @@ class Example(Frame):
             if new_key is None:
                 ann_string = ' ' + ann_string
             new_string = "[@" + string + ann_string + "*]"
-            new_cursor_index = line_id + "." + str(int(column_id) + len(new_string))
+            nlines = new_string.count('\n')
+            if nlines == 0:
+                new_cursor_index = line_id + "." + str(int(column_id) + len(new_string))
+            else:
+                overhang = len(new_string.splitlines()[-1])
+                new_cursor_index = str(int(line_id) + nlines) + "." + str(overhang)
         else:
             print "Invaild command!"
             print "cursor index: ", self.text.index(INSERT)
