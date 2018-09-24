@@ -16,29 +16,24 @@ import pickle
 import os.path
 import platform
 import tkMessageBox
+import pickle
+from settings import key_tag_map
 
 
 class Example(Frame):
     def __init__(self, parent):
         Frame.__init__(self, parent)
-        self.Version = "YEDDA-V1.0 Annotator"
+        self.Version = "Yelder v1.0"
         self.OS = platform.system().lower()
         self.parent = parent
         self.fileName = ""
-        self.debug = True
+        self.anno_file_path = './annotations/'
+        self.debug = False
         self.show_annotations = True
-        self.colorAllChunk = False
         self.history = deque(maxlen=20)
         self.currentContent = deque(maxlen=1)
         self.prev_selection_index = None
-        self.pressCommand = {'a': "Deep Learning",
-                             'b': "Text Analytics",
-                             'c': "Fraud Detection",
-                             'd': "Anomaly Detection",
-                             'e': "Past Performances",
-                             'f': "Unsupervised Learning",
-                             'g': "Survival Analysis"
-                             }
+        self.key_tag_map = key_tag_map
         self.allKey = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
         self.controlCommand = {'q': "unTag", 'ctrl+z': 'undo'}
         self.labelEntryList = []
@@ -46,30 +41,29 @@ class Example(Frame):
         self.annotations = []
 
         # default GUI display parameter
-        if len(self.pressCommand) > 20:
-            self.textRow = len(self.pressCommand)
+        if len(self.key_tag_map) > 20:
+            self.textRow = len(self.key_tag_map)
         else:
             self.textRow = 20
         self.textColumn = 5
-        self.tagScheme = "BMES"
-        self.onlyNP = False  # for exporting sequence
 
         self.configFile = "config"
-        # self.entityRe = r'\[\@.*?\#.*?\*\](?!\#)'
-        # self.entityRe = r'\[\@{\w\W}*?\#{\w\W}*?\*\](?!\#)'
         self.entityRe = r'\[\@[\w\W]*?\#[\w\W]*?\*\](?!\#)'
-        self.tclEntityRe = r'\[\@{\w\W}*\#{\w\W}*\*\](?!\#)'
-        self.insideNestEntityRe = r'\[\@\[\@(?!\[\@).*?\#.*?\*\]\#'
 
         # configure color
-        self.entityColor = "SkyBlue1"
-        self.insideNestEntityColor = "light slate blue"
         self.selectColor = 'light salmon'
         self.textFontStyle = "Times"
         self.initUI()
 
     def initUI(self):
+        """ Build out the tkinter UI (called only upon initialization)
 
+            Args:
+                None
+
+            Returns:
+                None
+        """
         self.parent.title(self.Version)
         self.pack(fill=BOTH, expand=True)
 
@@ -83,7 +77,8 @@ class Example(Frame):
         self.lbl = Label(self, text="File: no file is opened")
         self.lbl.grid(sticky=W, pady=4, padx=5)
         self.fnt = tkFont.Font(family=self.textFontStyle, size=self.textRow, weight="bold", underline=0)
-        self.text = Text(self, font=self.fnt, selectbackground=self.selectColor)
+        # self.text = Text(self, font=self.fnt, selectbackground=self.selectColor)
+        self.text = Text(self, font=self.fnt)
         self.text.grid(row=1, column=0, columnspan=self.textColumn, rowspan=self.textRow, padx=12, sticky=E+W+S+N)
 
         self.sb = Scrollbar(self)
@@ -97,74 +92,34 @@ class Example(Frame):
         cbtn = Button(self, text="Quit", command=self.quit)
         cbtn.grid(row=2, column=self.textColumn + 1, pady=4)
 
-        self.cursorIndex = Label(self, text=("row: %s\ncol: %s" % (0, 0)), foreground="red", font=(self.textFontStyle, 14, "bold"))
-        self.cursorIndex.grid(row=10, column=self.textColumn + 1, pady=4)
+        sbtn = Button(self, text="Save", command=self.save_and_load_next)
+        sbtn.grid(row=3, column=self.textColumn + 1, pady=4)
 
         for idx in range(0, len(self.allKey)):
             press_key = self.allKey[idx]
-
             self.text.bind(press_key, self.textReturnEnter)
             simplePressKey = "<KeyRelease-" + press_key + ">"
             self.text.bind(simplePressKey, self.deleteTextInput)
-            if self.OS != "windows":
-                controlPlusKey = "<Control-Key-" + press_key + ">"
-                self.text.bind(controlPlusKey, self.keepCurrent)
-                altPlusKey = "<Command-Key-" + press_key + ">"
-                self.text.bind(altPlusKey, self.keepCurrent)
 
-        self.text.bind('<Control-Key-z>', self.backToHistory)
+        self.text.bind('<Control-Key-z>', self.undo)
+        self.text.bind('<Command-Key-z>', self.undo)
 
-        '''
-        disable the default  copy behaivour when right click. For MacOS, right
-        click is button 2, other systems are button3
-        '''
+        # disable the default copy behavior for right clicking. On OSX, right
+        # click is button2 whereas on other systems it's button3
         self.text.bind('<Button-2>', self.rightClick)
         self.text.bind('<Button-3>', self.rightClick)
 
-        self.text.bind('<Double-Button-1>', self.doubleLeftClick)
-        self.text.bind('<ButtonRelease-1>', self.singleLeftClick)
-
         self.setMapShow()
 
-    # cursor index show with the left click
-    def singleLeftClick(self, event):
-        """ Event handler for clicking the textbox
-
-        Args:
-            event (Event): keyboard event passed by the mainloop
-
-        Returns:
-            None
-        """
-        if self.debug:
-            print "Action Track: singleLeftClick"
-        cursor_index = self.text.index(INSERT)
-        row_column = cursor_index.split('.')
-        cursor_text = ("row: %s\ncol: %s" % (row_column[0], row_column[-1]))
-        self.cursorIndex.config(text=cursor_text)
-
-    def doubleLeftClick(self, event):
-        """ Event handler for double clicking the textbox
-
-        Args:
-            event (Event): keyboard event passed by the mainloop
-
-        Returns:
-            None
-        """
-        if self.debug:
-            print "Action Track: doubleLeftClick"
-        pass
-
-    # Disable right click default copy selection behaviour
     def rightClick(self, event):
-        """ Event handler for right clicking the textbox
+        """ Event handler for right clicking the textbox (disables typical
+            right click copy behavior)
 
-        Args:
-            event (Event): keyboard event passed by the mainloop
+            Args:
+                event (Event): keyboard event passed by the mainloop
 
-        Returns:
-            None
+            Returns:
+                None
         """
         if self.debug:
             print "Action Track: rightClick"
@@ -179,11 +134,11 @@ class Example(Frame):
     def onOpen(self):
         """ Event handler for clicking the Open button
 
-        Args:
-            None
+            Args:
+                None
 
-        Returns:
-            None
+            Returns:
+                None
         """
         ftypes = [('all files', '.*'),
                   ('text files', '.txt'),
@@ -194,33 +149,33 @@ class Example(Frame):
             self.text.delete("1.0", END)
             text = self.readFile(fl)
             self.text.insert(END, text)
-            self.setNameLabel("File: " + fl)
+            self.lbl.config(text="File: " + fl)
             self.autoLoadNewFile(self.fileName, "1.0")
             self.text.mark_set(INSERT, "1.0")
-            self.setCursorLabel(self.text.index(INSERT))
 
     def readFile(self, filename):
         """ Read the text in from the file
 
-        Args:
-            filename (str): the name of the file
+            Args:
+                filename (str): the name of the file
 
-        Returns:
-            text (str): the text of the file
+            Returns:
+                text (str): the text of the file
         """
         f = open(filename, "rU")
         text = f.read()
         self.fileName = filename
+        self.doc_id = ''.join([d for d in self.fileName if d.isdigit()])
         return text
 
     def setFont(self, value):
         """ Set the font-related characteristics
 
-        Args:
-            event (Event): keyboard event passed by the mainloop
+            Args:
+                event (Event): keyboard event passed by the mainloop
 
-        Returns:
-            None
+            Returns:
+                None
         """
         _family = self.textFontStyle
         _size = value
@@ -228,17 +183,6 @@ class Example(Frame):
         _underline = 0
         fnt = tkFont.Font(family=_family, size=_size, weight=_weight, underline=_underline)
         Text(self, font=fnt)
-
-    def setNameLabel(self, new_file):
-        self.lbl.config(text=new_file)
-
-    def setCursorLabel(self, cursor_index):
-        if self.debug:
-            print "Action Track: setCursorLabel"
-        row_column = cursor_index.split('.')
-        cursor_text = ("row: %s\ncol: %s" % (row_column[0], row_column[-1]))
-        print cursor_text
-        self.cursorIndex.config(text=cursor_text)
 
     def textReturnEnter(self, event):
         """ Event handler for annotation keyboard shortcuts.
@@ -257,25 +201,26 @@ class Example(Frame):
         self.executeCursorCommand(press_key.lower())
         return press_key
 
-    def backToHistory(self, event):
+    def undo(self, event):
+        """ Reset the text to it's previous state and remove the last annotation
+
+            Args:
+                event (Event): keyboard event passed by the mainloop
+
+            Returns:
+                None
+        """
         if self.debug:
-            print "Action Track: backToHistory"
+            print "Action Track: undo"
         if len(self.history) > 0:
             historyCondition = self.history.pop()
             historyContent = historyCondition[0]
             cursorIndex = historyCondition[1]
+            self.annotations = self.annotations[:-1]
             self.writeFile(self.fileName, historyContent, cursorIndex)
         else:
             print "History is empty!"
         self.text.insert(INSERT, 'p')
-
-    def keepCurrent(self, event):
-        if self.debug:
-            print "Action Track: keepCurrent"
-        print("keep current, insert:%s" % (INSERT))
-        print "before:", self.text.index(INSERT)
-        self.text.insert(INSERT, 'p')
-        print "after:", self.text.index(INSERT)
 
     def getText(self):
         textContent = self.text.get("1.0", "end-1c")
@@ -298,10 +243,11 @@ class Example(Frame):
             print 'q: remove entity label'
             return
 
-        elif command not in self.pressCommand:
+        elif command not in self.key_tag_map:
             return
 
         content = self.getText()
+
         # try to get highlighted text, if nothing is highlighted catch the error
         try:
             first_cursor_index = self.text.index(SEL_FIRST)
@@ -368,7 +314,9 @@ class Example(Frame):
             parsed_string = [x.strip('*]') for x in raw_text.strip('[@*]').split('#')]
             raw_text = parsed_string[0]
             old_entities = [x.strip() for x in parsed_string[1:]]
-            old_commands = [self.pressCommand.keys()[self.pressCommand.values().index(entity)] for entity in old_entities]
+            print "OLD ENTITIES"
+            print old_entities
+            old_commands = [self.key_tag_map.keys()[self.key_tag_map.values().index(entity)] for entity in old_entities]
 
         # annotate the text
         if len(raw_text) > 0:
@@ -427,10 +375,9 @@ class Example(Frame):
         if (new_key not in keys):
             keys += [new_key]
 
-        if all(k in self.pressCommand for k in keys):
-            doc_id = ''.join([d for d in self.fileName if d.isdigit()])
-            self.annotations.append({'doc_id': doc_id, 'text': self.parse_tags(content), 'tag': self.pressCommand[new_key]})
-            ann_string = ' '.join(['#' + self.pressCommand[k] for k in keys])
+        if all(k in self.key_tag_map for k in keys):
+            self.annotations.append({'doc_id': self.doc_id, 'text': self.parse_tags(content), 'tag': self.key_tag_map[new_key]})
+            ann_string = ' '.join(['#' + self.key_tag_map[k] for k in keys])
             if new_key is None:
                 ann_string = ' ' + ann_string
             content = "[@" + content + ann_string + "*]"
@@ -441,14 +388,22 @@ class Example(Frame):
                 overhang = len(content.splitlines()[-1])
                 new_cursor_index = str(int(line_id) + nlines) + "." + str(overhang)
         else:
-            print "Invaild command!"
-            print "cursor index: ", self.text.index(INSERT)
+            print "Invalid command!"
             return content, cursor_index
         return content, new_cursor_index
 
     def parse_tags(self, s):
+        """ Utility function for stripping out annotation characters
+
+            Args:
+                s (str): the annotation to strip
+
+            Returns:
+                s (str): the stripped annotation
+        """
         s = re.sub(r'#(.*?)\*]', '', s)
-        return re.sub(r'\[*', '', s)
+        s = re.sub(r'\[*', '', s)
+        return s
 
     def writeFile(self, fileName, content, newcursor_index):
         """ Write the annotated document to a file
@@ -477,6 +432,7 @@ class Example(Frame):
                 ann_file.write(content)
                 ann_file.close()
             self.autoLoadNewFile(new_name, newcursor_index)
+            self.text.tag_remove(SEL, "1.0", END)
         else:
             print "Don't write to empty file!"
 
@@ -498,68 +454,10 @@ class Example(Frame):
             self.text.delete("1.0", END)
             text = self.readFile(fileName)
             self.text.insert("end-1c", text)
-            self.setNameLabel("File: " + fileName)
+            self.lbl.config(text="File: " + fileName)
             self.text.mark_set(INSERT, newcursor_index)
             self.text.see(newcursor_index)
-            self.setCursorLabel(newcursor_index)
-            # self.setColorDisplay()
-
-    # def setColorDisplay(self):
-    #     if self.debug:
-    #         print "Action Track: setColorDisplay"
-    #     self.text.config(insertbackground='red', insertwidth=4, font=self.fnt)
-    #
-    #     countVar = StringVar()
-    #     currentCursor = self.text.index(INSERT)
-    #     lineStart = currentCursor.split('.')[0] + '.0'
-    #     lineEnd = currentCursor.split('.')[0] + '.end'
-    #
-    #     if self.colorAllChunk:
-    #         self.text.mark_set("matchStart", "1.0")
-    #         self.text.mark_set("matchEnd", "1.0")
-    #         self.text.mark_set("searchLimit", 'end-1c')
-    #     else:
-    #         self.text.mark_set("matchStart", lineStart)
-    #         self.text.mark_set("matchEnd", lineStart)
-    #         self.text.mark_set("searchLimit", lineEnd)
-    #
-    #     while True:
-    #         self.text.tag_configure("category", background=self.entityColor)
-    #         self.text.tag_configure("edge", background=self.entityColor)
-    #         pos = self.text.search(self.entityRe, "matchEnd", "searchLimit",  count=countVar, regexp=True)
-    #         if pos == "":
-    #             break
-    #         self.text.mark_set("matchStart", pos)
-    #         self.text.mark_set("matchEnd", "%s+%sc" % (pos, countVar.get()))
-    #
-    #         first_pos = pos
-    #         second_pos = "%s+%sc" % (pos, str(1))
-    #         lastsecond_pos = "%s+%sc" % (pos, str(int(countVar.get())-1))
-    #         last_pos = "%s + %sc" %(pos, countVar.get())
-    #
-    #         self.text.tag_add("catagory", second_pos, lastsecond_pos)
-    #         self.text.tag_add("edge", first_pos, second_pos)
-    #         self.text.tag_add("edge", lastsecond_pos, last_pos)
-    #
-    #     ## color the most inside span for nested span, scan from begin to end again
-    #     if self.colorAllChunk:
-    #         self.text.mark_set("matchStart", "1.0")
-    #         self.text.mark_set("matchEnd", "1.0")
-    #         self.text.mark_set("searchLimit", 'end-1c')
-    #     else:
-    #         self.text.mark_set("matchStart", lineStart)
-    #         self.text.mark_set("matchEnd", lineStart)
-    #         self.text.mark_set("searchLimit", lineEnd)
-    #     while True:
-    #         self.text.tag_configure("insideEntityColor", background=self.insideNestEntityColor)
-    #         pos = self.text.search(self.insideNestEntityRe, "matchEnd", "searchLimit", count=countVar, regexp=True)
-    #         if pos == "":
-    #             break
-    #         self.text.mark_set("matchStart", pos)
-    #         self.text.mark_set("matchEnd", "%s+%sc" % (pos, countVar.get()))
-    #         first_pos = "%s + %sc" % (pos, 2)
-    #         last_pos = "%s + %sc" % (pos, str(int(countVar.get())-1))
-    #         self.text.tag_add("insideEntityColor", first_pos, last_pos)
+            # self.setCursorLabel(newcursor_index)
 
     def pushToHistory(self):
         """ Push a snapshot of the current text and cursor position to
@@ -582,36 +480,33 @@ class Example(Frame):
         currentList.append(cursorPosition)
         self.history.append(currentList)
 
-    def pushToHistoryEvent(self, event):
-        if self.debug:
-            print "Action Track: pushToHistoryEvent"
-        currentList = []
-        content = self.getText()
-        cursorPosition = self.text.index(INSERT)
-        currentList.append(content)
-        currentList.append(cursorPosition)
-        self.history.append(currentList)
-
-    # show shortcut map
     def setMapShow(self):
+        """ Generate labels and entries for the tag options
+
+            Args:
+                None
+
+            Returns:
+                None
+        """
         if os.path.isfile(self.configFile):
             with open(self.configFile, 'rb') as fp:
-                self.pressCommand = pickle.load(fp)
-        hight = len(self.pressCommand)
+                self.key_tag_map = pickle.load(fp)
+        hight = len(self.key_tag_map)
         width = 2
         row = 0
         mapLabel = Label(self, text="Shortcuts map Labels", foreground="blue", font=(self.textFontStyle, 14, "bold"))
         mapLabel.grid(row=0, column=self.textColumn + 2, columnspan=2, rowspan=1, padx=10)
         self.labelEntryList = []
         self.shortcutLabelList = []
-        for key in sorted(self.pressCommand):
+        for key in sorted(self.key_tag_map):
             row += 1
             symbolLabel = Label(self, text=key.upper() + ": ", foreground="blue", font=(self.textFontStyle, 14, "bold"))
             symbolLabel.grid(row=row, column=self.textColumn + 2, columnspan=1, rowspan=1, padx=3)
             self.shortcutLabelList.append(symbolLabel)
 
             labelEntry = Entry(self, foreground="blue", font=(self.textFontStyle, 14, "bold"))
-            labelEntry.insert(0, self.pressCommand[key])
+            labelEntry.insert(0, self.key_tag_map[key])
             labelEntry.grid(row=row, column=self.textColumn + 3, columnspan=1, rowspan=1)
             self.labelEntryList.append(labelEntry)
 
@@ -621,14 +516,19 @@ class Example(Frame):
         self.add_command_box.grid(row=row + 1, column=self.textColumn + 3, columnspan=1, rowspan=1)
         self.add_command_box.bind('<Return>', self.add_command)
 
-    def getCursorIndex(self):
-        return self.text.index(INSERT)
-
     def add_command(self, event):
+        """ Event handler for pressing enter inside the new command entry
+
+            Args:
+                event (Event): keyboard event passed by the mainloop
+
+            Returns:
+                None
+        """
         text = self.add_command_box.get()
-        command = chr(ord('a') + len(self.pressCommand))
-        self.pressCommand[command] = text
-        row = len(self.pressCommand)
+        command = chr(ord('a') + len(self.key_tag_map))
+        self.key_tag_map[command] = text
+        row = len(self.key_tag_map)
 
         self.command_box_lbl.grid(row=row+1, column=self.textColumn + 2, columnspan=1, rowspan=1, padx=4)
         self.add_command_box.grid(row=row+1, column=self.textColumn + 3, columnspan=1, rowspan=1)
@@ -640,9 +540,18 @@ class Example(Frame):
         self.shortcutLabelList.append(symbolLabel)
 
         labelEntry = Entry(self, foreground="blue", font=(self.textFontStyle, 14, "bold"))
-        labelEntry.insert(0, self.pressCommand[command])
+        labelEntry.insert(0, self.key_tag_map[command])
         labelEntry.grid(row=row, column=self.textColumn + 3, columnspan=1, rowspan=1)
         self.labelEntryList.append(labelEntry)
+
+    def save_and_load_next(self):
+        with open(self.anno_file_path + self.doc_id + '.pkl', 'wb') as f:
+            pickle.dump(self.annotations, f)
+
+        self.annotations = []
+        self.prev_selection_index = None
+        self.onOpen()  # open a dialogue box to select a new file
+
 
 def main():
     root = Tk()
