@@ -6,17 +6,15 @@
 # !/usr/bin/env python
 # coding=utf-8
 
-from Tkinter import *
-from ttk import *  # Frame, Button, Label, Style, Scrollbar
-import tkFileDialog
-import tkFont
-import re
-from collections import deque, OrderedDict
+from tkinter import *
+from tkinter.ttk import Frame, Button, Label, Scrollbar
+from tkinter.filedialog import Open
+from tkinter.font import Font
+from collections import deque
 import pickle
 import os.path
 import platform
-import tkMessageBox
-import pickle
+import re
 from settings import key_tag_map
 
 
@@ -76,7 +74,7 @@ class Example(Frame):
 
         self.lbl = Label(self, text="File: no file is opened")
         self.lbl.grid(sticky=W, pady=4, padx=5)
-        self.fnt = tkFont.Font(family=self.textFontStyle, size=self.textRow, weight="bold", underline=0)
+        self.fnt = Font(family=self.textFontStyle, size=self.textRow, weight="bold", underline=0)
         # self.text = Text(self, font=self.fnt, selectbackground=self.selectColor)
         self.text = Text(self, font=self.fnt)
         self.text.grid(row=1, column=0, columnspan=self.textColumn, rowspan=self.textRow, padx=12, sticky=E+W+S+N)
@@ -122,14 +120,8 @@ class Example(Frame):
                 None
         """
         if self.debug:
-            print "Action Track: rightClick"
-        try:
-            firstSelection_index = self.text.index(SEL_FIRST)
-            cursor_index = self.text.index(SEL_LAST)
-            content = self.text.get('1.0', "end-1c").encode('utf-8')
-            # self.writeFile(self.fileName, content, cursor_index)
-        except TclError:
-            pass
+            print("Action Track: rightClick")
+        pass
 
     def onOpen(self):
         """ Event handler for clicking the Open button
@@ -143,7 +135,7 @@ class Example(Frame):
         ftypes = [('all files', '.*'),
                   ('text files', '.txt'),
                   ('ann files', '.ann')]
-        dlg = tkFileDialog.Open(self, filetypes=ftypes)
+        dlg = Open(self, filetypes=ftypes)
         fl = dlg.show()
         if fl != '':
             self.text.delete("1.0", END)
@@ -181,7 +173,7 @@ class Example(Frame):
         _size = value
         _weight = "bold"
         _underline = 0
-        fnt = tkFont.Font(family=_family, size=_size, weight=_weight, underline=_underline)
+        fnt = Font(family=_family, size=_size, weight=_weight, underline=_underline)
         Text(self, font=fnt)
 
     def textReturnEnter(self, event):
@@ -195,8 +187,8 @@ class Example(Frame):
         """
         press_key = event.char
         if self.debug:
-            print "Action Track: textReturnEnter"
-            print "event: ", press_key
+            print("Action Track: textReturnEnter")
+            print("event: ", press_key)
         self.pushToHistory()
         self.executeCursorCommand(press_key.lower())
         return press_key
@@ -211,7 +203,7 @@ class Example(Frame):
                 None
         """
         if self.debug:
-            print "Action Track: undo"
+            print("Action Track: undo")
         if len(self.history) > 0:
             historyCondition = self.history.pop()
             historyContent = historyCondition[0]
@@ -219,7 +211,7 @@ class Example(Frame):
             self.annotations = self.annotations[:-1]
             self.writeFile(self.fileName, historyContent, cursorIndex)
         else:
-            print "History is empty!"
+            print("History is empty!")
         self.text.insert(INSERT, 'p')
 
     def getText(self):
@@ -237,10 +229,10 @@ class Example(Frame):
                 None
         """
         if self.debug:
-            print "Action Track: executeCursorCommand"
+            print("Action Track: executeCursorCommand")
 
         if command == "q":
-            print 'q: remove entity label'
+            print('q: remove entity label')
             return
 
         elif command not in self.key_tag_map:
@@ -307,16 +299,16 @@ class Example(Frame):
         # detect if the selected text is already annotated
         if re.match(self.entityRe, raw_text) is not None:
             if self.debug:
-                print "ENTITY DETECTED"
+                print("ENTITY DETECTED")
 
             # parse the selected text into original text and old entities
             # TODO: Add support for overlapping annotations
             parsed_string = [x.strip('*]') for x in raw_text.strip('[@*]').split('#')]
             raw_text = parsed_string[0]
             old_entities = [x.strip() for x in parsed_string[1:]]
-            print "OLD ENTITIES"
-            print old_entities
-            old_commands = [self.key_tag_map.keys()[self.key_tag_map.values().index(entity)] for entity in old_entities]
+            print("OLD ENTITIES")
+            print(old_entities)
+            old_commands = [list(self.key_tag_map.keys())[list(self.key_tag_map.values()).index(entity)] for entity in old_entities]
 
         # annotate the text
         if len(raw_text) > 0:
@@ -329,7 +321,7 @@ class Example(Frame):
 
         content = content.encode('utf-8')
         self.writeFile(self.fileName, content, cursor_index)
-        print self.annotations
+        print(self.annotations)
 
     def deleteTextInput(self, event):
         """ Delete the keyboard shortcut text from the textbox
@@ -341,16 +333,16 @@ class Example(Frame):
                 None
         """
         if self.debug:
-            print "Action Track: deleteTextInput"
+            print("Action Track: deleteTextInput")
         get_insert = self.text.index(INSERT)
         insert_list = get_insert.split('.')
         last_insert = insert_list[0] + "." + str(int(insert_list[1])-1)
-        get_input = self.text.get(last_insert, get_insert).encode('utf-8')
+        get_input = self.text.get(last_insert, get_insert)
         aboveHalf_content = self.text.get('1.0', last_insert).encode('utf-8')
-        followHalf_content = self.text.get(last_insert, "end-1c").encode('utf-8')
+        followHalf_content = self.text.get(last_insert, "end-1c")
         if len(get_input) > 0:
             followHalf_content = followHalf_content.replace(get_input, '', 1)
-        content = aboveHalf_content + followHalf_content
+        content = aboveHalf_content + followHalf_content.encode('utf-8')
         self.writeFile(self.fileName, content, last_insert)
 
     def replaceString(self, content, cursor_index, new_key, keys=[]):
@@ -388,7 +380,7 @@ class Example(Frame):
                 overhang = len(content.splitlines()[-1])
                 new_cursor_index = str(int(line_id) + nlines) + "." + str(overhang)
         else:
-            print "Invalid command!"
+            print("Invalid command!")
             return content, cursor_index
         return content, new_cursor_index
 
@@ -418,23 +410,23 @@ class Example(Frame):
                 None
         """
         if self.debug:
-                print "Action track: writeFile"
+                print("Action track: writeFile")
 
         if len(fileName) > 0:
             if ".ann" in fileName:
                 new_name = fileName
-                ann_file = open(new_name, 'w')
+                ann_file = open(new_name, 'wb')
                 ann_file.write(content)
                 ann_file.close()
             else:
                 new_name = fileName + '.ann'
-                ann_file = open(new_name, 'w')
+                ann_file = open(new_name, 'wb')
                 ann_file.write(content)
                 ann_file.close()
             self.autoLoadNewFile(new_name, newcursor_index)
             self.text.tag_remove(SEL, "1.0", END)
         else:
-            print "Don't write to empty file!"
+            print("Don't write to empty file!")
 
     def autoLoadNewFile(self, fileName, newcursor_index):
         """ Automatically load the updated file so that we are always working
@@ -449,7 +441,7 @@ class Example(Frame):
                 None
         """
         if self.debug:
-            print "Action Track: autoLoadNewFile"
+            print("Action Track: autoLoadNewFile")
         if len(fileName) > 0:
             self.text.delete("1.0", END)
             text = self.readFile(fileName)
@@ -472,7 +464,7 @@ class Example(Frame):
         """
 
         if self.debug:
-            print "Action Track: pushToHistory"
+            print("Action Track: pushToHistory")
         currentList = []
         content = self.getText()
         cursorPosition = self.text.index(INSERT)
@@ -492,8 +484,6 @@ class Example(Frame):
         if os.path.isfile(self.configFile):
             with open(self.configFile, 'rb') as fp:
                 self.key_tag_map = pickle.load(fp)
-        hight = len(self.key_tag_map)
-        width = 2
         row = 0
         mapLabel = Label(self, text="Shortcuts map Labels", foreground="blue", font=(self.textFontStyle, 14, "bold"))
         mapLabel.grid(row=0, column=self.textColumn + 2, columnspan=2, rowspan=1, padx=10)

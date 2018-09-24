@@ -6,7 +6,7 @@ Yelder is stripped down version of YEDDA that's been rebuilt to support multilin
 
 Yelder no longer supports tag recommendations or entity highlighting, although we hope to add back that functionality in the future. We have also removed the adminstrator tools for this first iteration.
 
-System required: Python 2.7
+System required: Python 3
 
 ## Get Started
 
