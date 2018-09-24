@@ -26,20 +26,18 @@ class Example(Frame):
         self.parent = parent
         self.fileName = ""
         self.debug = True
-        self.show_annotations = False
+        self.show_annotations = True
         self.colorAllChunk = False
         self.history = deque(maxlen=20)
         self.currentContent = deque(maxlen=1)
         self.prev_selection_index = None
-        # TODO: Adding new categories/shortcuts on the fly
         self.pressCommand = {'a': "Deep Learning",
                              'b': "Text Analytics",
                              'c': "Fraud Detection",
                              'd': "Anomaly Detection",
-                             'e': "Introduction",
-                             'f': "Past Performances",
-                             'g': "Unsupervised Learning",
-                             'h': "Survival Analysis"
+                             'e': "Past Performances",
+                             'f': "Unsupervised Learning",
+                             'g': "Survival Analysis"
                              }
         self.allKey = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
         self.controlCommand = {'q': "unTag", 'ctrl+z': 'undo'}
@@ -92,19 +90,12 @@ class Example(Frame):
         self.sb.grid(row=1, column=self.textColumn, rowspan=self.textRow, padx=0, sticky=E+W+S+N)
         self.text['yscrollcommand'] = self.sb.set
         self.sb['command'] = self.text.yview
-        # self.sb.pack()
 
         abtn = Button(self, text="Open", command=self.onOpen)
         abtn.grid(row=1, column=self.textColumn + 1)
 
-        ubtn = Button(self, text="ReMap", command=self.renewPressCommand)
-        ubtn.grid(row=2, column=self.textColumn + 1, pady=4)
-
-        # exportbtn = Button(self, text="Export", command=self.generateSequenceFile)
-        # exportbtn.grid(row=3, column=self.textColumn + 1, pady=4)
-
         cbtn = Button(self, text="Quit", command=self.quit)
-        cbtn.grid(row=3, column=self.textColumn + 1, pady=4)
+        cbtn.grid(row=2, column=self.textColumn + 1, pady=4)
 
         self.cursorIndex = Label(self, text=("row: %s\ncol: %s" % (0, 0)), foreground="red", font=(self.textFontStyle, 14, "bold"))
         self.cursorIndex.grid(row=10, column=self.textColumn + 1, pady=4)
@@ -393,10 +384,17 @@ class Example(Frame):
         print self.annotations
 
     def deleteTextInput(self, event):
+        """ Delete the keyboard shortcut text from the textbox
+
+            Args:
+                event (Event): the keyboard shortcut
+
+            Returns:
+                None
+        """
         if self.debug:
             print "Action Track: deleteTextInput"
         get_insert = self.text.index(INSERT)
-        print "delete insert:", get_insert
         insert_list = get_insert.split('.')
         last_insert = insert_list[0] + "." + str(int(insert_list[1])-1)
         get_input = self.text.get(last_insert, get_insert).encode('utf-8')
@@ -431,7 +429,7 @@ class Example(Frame):
 
         if all(k in self.pressCommand for k in keys):
             doc_id = ''.join([d for d in self.fileName if d.isdigit()])
-            self.annotations.append({'doc_id': doc_id, 'text': content, 'tag': self.pressCommand[new_key]})
+            self.annotations.append({'doc_id': doc_id, 'text': self.parse_tags(content), 'tag': self.pressCommand[new_key]})
             ann_string = ' '.join(['#' + self.pressCommand[k] for k in keys])
             if new_key is None:
                 ann_string = ' ' + ann_string
@@ -448,46 +446,9 @@ class Example(Frame):
             return content, cursor_index
         return content, new_cursor_index
 
-    # def replaceString(self, content, string, cursor_index, new_key, keys=[]):
-    #     """ Replace a string with the annotated string and move the cursorName
-    #
-    #         Args:
-    #             content (str): the string to format
-    #             string (str): also the string to format? not sure why this is
-    #                 being passed twice
-    #             replaceType ([str]): list of lowercase keyboard shortcut
-    #                 characters
-    #             cursor_index (str): location of the cursor in the text box
-    #
-    #         Returns:
-    #             content (str): the annotated string
-    #             newcursor_index (str): the recalculated cursor location after
-    #                 inserting the string
-    #     """
-    #     assert new_key is not None, "new_key cannot be None"
-    #
-    #     [line_id, column_id] = cursor_index.split('.')
-    #     if (new_key not in keys):
-    #         keys += [new_key]
-    #
-    #     if all(k in self.pressCommand for k in keys):
-    #         ann_string = ' '.join(['#' + self.pressCommand[k] for k in keys])
-    #         if new_key is None:
-    #             ann_string = ' ' + ann_string
-    #         new_string = "[@" + string + ann_string + "*]"
-    #         nlines = new_string.count('\n')
-    #         if nlines == 0:
-    #             new_cursor_index = line_id + "." + str(int(column_id) + len(new_string))
-    #         else:
-    #             overhang = len(new_string.splitlines()[-1])
-    #             new_cursor_index = str(int(line_id) + nlines) + "." + str(overhang)
-    #     else:
-    #         print "Invaild command!"
-    #         print "cursor index: ", self.text.index(INSERT)
-    #         return content, cursor_index
-    #     content = content.replace(string, new_string, 1)
-    #     self.annotations.append({'doc_id': self.fileName, 'text': string, 'tag': new_key})
-    #     return content, new_cursor_index
+    def parse_tags(self, s):
+        s = re.sub(r'#(.*?)\*]', '', s)
+        return re.sub(r'\[*', '', s)
 
     def writeFile(self, fileName, content, newcursor_index):
         """ Write the annotated document to a file
@@ -561,28 +522,26 @@ class Example(Frame):
     #         self.text.mark_set("matchStart", lineStart)
     #         self.text.mark_set("matchEnd", lineStart)
     #         self.text.mark_set("searchLimit", lineEnd)
+    #
     #     while True:
-    #         self.text.tag_configure("catagory", background=self.entityColor)
+    #         self.text.tag_configure("category", background=self.entityColor)
     #         self.text.tag_configure("edge", background=self.entityColor)
-    #         # pos = self.text.search(self.entityRe, "matchEnd", "searchLimit", count=countVar, regexp=True)
-    #         pos = self.text.search(self.tclEntityRe, "matchEnd", "searchLimit", count=countVar, regexp=True)
+    #         pos = self.text.search(self.entityRe, "matchEnd", "searchLimit",  count=countVar, regexp=True)
     #         if pos == "":
     #             break
-    #         print "POS"
-    #         print pos
     #         self.text.mark_set("matchStart", pos)
     #         self.text.mark_set("matchEnd", "%s+%sc" % (pos, countVar.get()))
     #
     #         first_pos = pos
     #         second_pos = "%s+%sc" % (pos, str(1))
     #         lastsecond_pos = "%s+%sc" % (pos, str(int(countVar.get())-1))
-    #         last_pos = "%s + %sc" % (pos, countVar.get())
+    #         last_pos = "%s + %sc" %(pos, countVar.get())
     #
     #         self.text.tag_add("catagory", second_pos, lastsecond_pos)
     #         self.text.tag_add("edge", first_pos, second_pos)
     #         self.text.tag_add("edge", lastsecond_pos, last_pos)
     #
-    #     # color the most inside span for nested span, scan from begin to end
+    #     ## color the most inside span for nested span, scan from begin to end again
     #     if self.colorAllChunk:
     #         self.text.mark_set("matchStart", "1.0")
     #         self.text.mark_set("matchEnd", "1.0")
@@ -593,7 +552,7 @@ class Example(Frame):
     #         self.text.mark_set("searchLimit", lineEnd)
     #     while True:
     #         self.text.tag_configure("insideEntityColor", background=self.insideNestEntityColor)
-    #         pos = self.text.search(self.insideNestEntityRe, "matchEnd", "searchLimit",  count=countVar, regexp=True)
+    #         pos = self.text.search(self.insideNestEntityRe, "matchEnd", "searchLimit", count=countVar, regexp=True)
     #         if pos == "":
     #             break
     #         self.text.mark_set("matchStart", pos)
@@ -633,30 +592,6 @@ class Example(Frame):
         currentList.append(cursorPosition)
         self.history.append(currentList)
 
-    # update shortcut map
-    def renewPressCommand(self):
-        if self.debug:
-            print "Action Track: renewPressCommand"
-        seq = 0
-        new_dict = {}
-        listLength = len(self.labelEntryList)
-        delete_num = 0
-        for key in sorted(self.pressCommand):
-            label = self.labelEntryList[seq].get()
-            if len(label) > 0:
-                new_dict[key] = label
-            else:
-                delete_num += 1
-            seq += 1
-        self.pressCommand = new_dict
-        for idx in range(1, delete_num+1):
-            self.labelEntryList[listLength-idx].delete(0, END)
-            self.shortcutLabelList[listLength-idx].config(text="NON= ")
-        with open(self.configFile, 'wb') as fp:
-            pickle.dump(self.pressCommand, fp)
-        self.setMapShow()
-        tkMessageBox.showinfo("Remap Notification", "Shortcut map has been updated!\n\nConfigure file has been saved in File:" + self.configFile)
-
     # show shortcut map
     def setMapShow(self):
         if os.path.isfile(self.configFile):
@@ -689,10 +624,6 @@ class Example(Frame):
     def getCursorIndex(self):
         return self.text.index(INSERT)
 
-    # TODO: Creating and adding commands on the fly
-    # 1. Get the text from the new command textbox that's preset to be the next letter in the alphabet
-    # 2. Insert the new command and entity into self.pressCommand
-    # 3. Create a new textbox with a new command label
     def add_command(self, event):
         text = self.add_command_box.get()
         command = chr(ord('a') + len(self.pressCommand))
@@ -714,8 +645,6 @@ class Example(Frame):
         self.labelEntryList.append(labelEntry)
 
 def main():
-    print("SUTDAnnotator launched!")
-    print(("OS: %s") % (platform.system()))
     root = Tk()
     root.geometry("1300x700+200+200")
     app = Example(root)
