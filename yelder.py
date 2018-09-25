@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
-# @Author: Jie Yang from SUTD
-# @Date:   2016-Jan-06 17:11:59
-# @Last Modified by:   Jie Yang,     Contact: jieynlp@gmail.com
-# @Last Modified time: 2018-07-15 20:33:40
+# @Author: Sam Ballerini from Elder Research, Inc.
+# @Date:   2018-Sept-24
+# @Last Modified by:   Sam Ballerini,     Contact: sam.ballerini@elderresearch.com
 # !/usr/bin/env python
-# coding=utf-8
 
 from tkinter import *
 from tkinter.ttk import Frame, Button, Label, Scrollbar
