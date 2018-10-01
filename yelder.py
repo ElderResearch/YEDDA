@@ -12,8 +12,9 @@ from collections import deque
 import pickle
 import os.path
 import platform
+import json
+from random import choice
 import re
-from settings import key_tag_map
 
 
 class Example(Frame):
@@ -29,8 +30,11 @@ class Example(Frame):
         self.history = deque(maxlen=20)
         self.currentContent = deque(maxlen=1)
         self.prev_selection_index = None
-        self.key_tag_map = key_tag_map
-        self.allKey = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+        with open('key_tag_map.json', 'rb') as json_file:
+            self.key_tag_map = json.load(json_file)
+
+        self.allKey = "0123456789abcdefghijklmnopqrstuvwxyz,./;'[]\-=`'"
         self.controlCommand = {'q': "unTag", 'ctrl+z': 'undo'}
         self.labelEntryList = []
         self.shortcutLabelList = []
@@ -489,7 +493,7 @@ class Example(Frame):
         self.shortcutLabelList = []
         for key in sorted(self.key_tag_map):
             row += 1
-            symbolLabel = Label(self, text=key.upper() + ": ", foreground="blue", font=(self.textFontStyle, 14, "bold"))
+            symbolLabel = Label(self, text=key + ": ", foreground="blue", font=(self.textFontStyle, 14, "bold"))
             symbolLabel.grid(row=row, column=self.textColumn + 2, columnspan=1, rowspan=1, padx=3)
             self.shortcutLabelList.append(symbolLabel)
 
@@ -514,8 +518,10 @@ class Example(Frame):
                 None
         """
         text = self.add_command_box.get()
-        command = chr(ord('a') + len(self.key_tag_map))
+        command = self.get_key()
+        # command = chr(ord('a') + len(self.key_tag_map))
         self.key_tag_map[command] = text
+        self.save_key_tag_map()
         row = len(self.key_tag_map)
 
         self.command_box_lbl.grid(row=row+1, column=self.textColumn + 2, columnspan=1, rowspan=1, padx=4)
@@ -523,7 +529,7 @@ class Example(Frame):
         self.add_command_box.bind('<Return>', self.add_command)
         self.add_command_box.delete(0, 'end')
 
-        symbolLabel = Label(self, text=command.upper() + ": ", foreground="blue", font=(self.textFontStyle, 14, "bold"))
+        symbolLabel = Label(self, text=command + ": ", foreground="blue", font=(self.textFontStyle, 14, "bold"))
         symbolLabel.grid(row=row, column=self.textColumn + 2, columnspan=1, rowspan=1, padx=3)
         self.shortcutLabelList.append(symbolLabel)
 
@@ -531,6 +537,17 @@ class Example(Frame):
         labelEntry.insert(0, self.key_tag_map[command])
         labelEntry.grid(row=row, column=self.textColumn + 3, columnspan=1, rowspan=1)
         self.labelEntryList.append(labelEntry)
+
+    def get_key(self):
+        all_keys = set(self.allKey)
+        used_keys = list(self.key_tag_map.keys()) + ['q']
+        keys = list(all_keys.difference(used_keys))
+        assert keys != {}, "No shortcuts left to assign!"
+        return choice(keys)
+
+    def save_key_tag_map(self):
+        with open('key_tag_map.json', 'w') as out_file:
+            json.dump(self.key_tag_map, out_file)
 
     def save_and_load_next(self):
         with open(self.anno_file_path + self.doc_id + '.pkl', 'wb') as f:
@@ -543,7 +560,7 @@ class Example(Frame):
 
 def main():
     root = Tk()
-    root.geometry("1300x700+200+200")
+    root.geometry("2600x1400")
     app = Example(root)
     app.setFont(17)
     root.mainloop()

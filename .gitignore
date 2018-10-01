@@ -30,3 +30,7 @@ Temporary Items
 .pyc
 .pycache
 __pycache__/
+
+# documents
+docs/
+*.txt
